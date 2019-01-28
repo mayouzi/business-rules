@@ -16,47 +16,40 @@ def run_all(rule_list,
     return rule_was_triggered
 
 
-def run_tree_rule(rule, defined_variables, defined_actions):
+def run_branch_rule(rule, defined_variables, defined_actions):
     """
-        run tree rule
+        run branch rule
     :param rule:
             {
                 "conditions": {},
-                "children": {
-                    # if conditions is true
-                    "true": {
+                "then": {
+                    # if conditions is triggered
+                    "trigger": {
                         "actions": []
                     },
                     # else
-                    "false": {
+                    "else": {
                         "actions": []
                     }
                 }
             }
     :param defined_variables: variables
     :param defined_actions: actions
-    :return:
+    :return: True otherwise False
     """
 
     conditions = rule.get('conditions', {})
-    children = rule.get('children', {})
-    if all([not conditions, not children]):
+    then = rule.get('then', {})
+    if all([not conditions, not then]):
         return True
     rule_triggered = check_conditions_recursively(conditions, defined_variables) if bool(conditions) else True
-    if rule_triggered:
-        true_children = children.get('true', {})
-        if 'actions' in true_children:
-            do_actions(true_children['actions'], defined_actions)
-            return True
-        else:
-            return run_tree_rule(true_children, defined_variables, defined_actions)
-    else:
-        false_children = children.get('false', {})
-        if 'actions' in false_children:
-            do_actions(false_children['actions'], defined_actions)
-            return True
-        else:
-            return run_tree_rule(false_children, defined_variables, defined_actions)
+    branch_rule = then.get('trigger', {}) if rule_triggered else then.get('else', {})
+
+    if 'actions' not in branch_rule:
+        return run_branch_rule(branch_rule, defined_variables, defined_actions)
+
+    do_actions(branch_rule['actions'], defined_actions)
+    return True
 
 
 def run(rule, defined_variables, defined_actions):
