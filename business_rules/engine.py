@@ -1,5 +1,6 @@
 from .fields import FIELD_NO_INPUT
 
+
 def run_all(rule_list,
             defined_variables,
             defined_actions,
@@ -14,9 +15,59 @@ def run_all(rule_list,
                 return True
     return rule_was_triggered
 
+
+def run_branch_rule(rule, defined_variables, defined_actions, procedure=None):
+    """
+        run branch rule
+    :param rule:
+            {
+                "conditions": {},
+                "then": {
+                    # if conditions is triggered
+                    "trigger": {
+                        "actions": []
+                    },
+                    # else
+                    "else": {
+                        "actions": []
+                    }
+                }
+            }
+    :param defined_variables: variables
+    :param defined_actions: actions
+    :param procedure: record run procedure
+    :return: True otherwise False
+    """
+
+    conditions = rule.get('conditions', {})
+    then = rule.get('then', {})
+    if all([not conditions, not then]):
+        return True
+
+    _procedure = None
+    rule_triggered = check_conditions_recursively(conditions, defined_variables) if bool(conditions) else True
+    if rule_triggered:
+        branch_rule = then.get('trigger', {})
+        if procedure is not None:
+            procedure['then']['trigger']['past'] = True
+            _procedure = procedure['then']['trigger']
+    else:
+        branch_rule = then.get('else', {})
+        if procedure is not None:
+            procedure['then']['else']['past'] = True
+            _procedure = procedure['then']['else']
+
+    if 'actions' not in branch_rule:
+        return run_branch_rule(
+            branch_rule, defined_variables, defined_actions, _procedure)
+
+    do_actions(branch_rule['actions'], defined_actions)
+    return True
+
+
 def run(rule, defined_variables, defined_actions):
-    conditions, actions = rule['conditions'], rule['actions']
-    rule_triggered = check_conditions_recursively(conditions, defined_variables)
+    conditions, actions = rule.get('conditions'), rule['actions']
+    rule_triggered = check_conditions_recursively(conditions, defined_variables) if bool(conditions) else True
     if rule_triggered:
         do_actions(actions, defined_actions)
         return True
@@ -45,6 +96,7 @@ def check_conditions_recursively(conditions, defined_variables):
         assert not ('any' in keys or 'all' in keys)
         return check_condition(conditions, defined_variables)
 
+
 def check_condition(condition, defined_variables):
     """ Checks a single rule condition - the condition will be made up of
     variables, values, and the comparison operator. The defined_variables
@@ -53,6 +105,7 @@ def check_condition(condition, defined_variables):
     name, op, value = condition['name'], condition['operator'], condition['value']
     operator_type = _get_variable_value(defined_variables, name)
     return _do_operator_comparison(operator_type, op, value)
+
 
 def _get_variable_value(defined_variables, name):
     """ Call the function provided on the defined_variables object with the
