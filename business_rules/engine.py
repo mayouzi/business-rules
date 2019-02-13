@@ -16,7 +16,7 @@ def run_all(rule_list,
     return rule_was_triggered
 
 
-def run_branch_rule(rule, defined_variables, defined_actions):
+def run_branch_rule(rule, defined_variables, defined_actions, procedure=None):
     """
         run branch rule
     :param rule:
@@ -35,6 +35,7 @@ def run_branch_rule(rule, defined_variables, defined_actions):
             }
     :param defined_variables: variables
     :param defined_actions: actions
+    :param procedure: record run procedure
     :return: True otherwise False
     """
 
@@ -42,11 +43,23 @@ def run_branch_rule(rule, defined_variables, defined_actions):
     then = rule.get('then', {})
     if all([not conditions, not then]):
         return True
+
+    _procedure = None
     rule_triggered = check_conditions_recursively(conditions, defined_variables) if bool(conditions) else True
-    branch_rule = then.get('trigger', {}) if rule_triggered else then.get('else', {})
+    if rule_triggered:
+        branch_rule = then.get('trigger', {})
+        if procedure is not None:
+            procedure['then']['trigger']['past'] = True
+            _procedure = procedure['then']['trigger']
+    else:
+        branch_rule = then.get('else', {})
+        if procedure is not None:
+            procedure['then']['else']['past'] = True
+            _procedure = procedure['then']['else']
 
     if 'actions' not in branch_rule:
-        return run_branch_rule(branch_rule, defined_variables, defined_actions)
+        return run_branch_rule(
+            branch_rule, defined_variables, defined_actions, _procedure)
 
     do_actions(branch_rule['actions'], defined_actions)
     return True
