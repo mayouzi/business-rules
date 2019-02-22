@@ -1,3 +1,4 @@
+# coding: utf-8
 import inspect
 import re
 from functools import wraps
@@ -6,7 +7,9 @@ from .six import string_types, integer_types
 from .fields import (FIELD_TEXT, FIELD_NUMERIC, FIELD_NO_INPUT,
                      FIELD_SELECT, FIELD_SELECT_MULTIPLE)
 from .utils import fn_name_to_pretty_label, float_to_decimal
+from .translation import get_real_label
 from decimal import Decimal, Inexact, Context
+
 
 class BaseType(object):
     def __init__(self, value):
@@ -16,10 +19,10 @@ class BaseType(object):
         raise NotImplemented()
 
     @classmethod
-    def get_all_operators(cls):
+    def get_all_operators(cls, chinese=False):
         methods = inspect.getmembers(cls)
         return [{'name': m[0],
-                 'label': m[1].label,
+                 'label': get_real_label(m[1].label, chinese),
                  'input_type': m[1].input_type}
                 for m in methods if getattr(m[1], 'is_operator', False)]
 
