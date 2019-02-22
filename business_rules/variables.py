@@ -1,6 +1,7 @@
 import inspect
 from functools import wraps
 from .utils import fn_name_to_pretty_label
+from .translation import get_real_label
 from .operators import (BaseType,
                         NumericType,
                         StringType,
@@ -13,10 +14,10 @@ class BaseVariables(object):
     engine should inherit from this.
     """
     @classmethod
-    def get_all_variables(cls):
+    def get_all_variables(cls, chinese=False):
         methods = inspect.getmembers(cls)
         return [{'name': m[0],
-                 'label': m[1].label,
+                 'label': get_real_label(m[1].label, chinese),
                  'field_type': m[1].field_type.name,
                  'options': m[1].options,
                 } for m in methods if getattr(m[1], 'is_rule_variable', False)]

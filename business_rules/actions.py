@@ -2,6 +2,7 @@ import inspect
 
 from . import fields
 from .utils import fn_name_to_pretty_label
+from .translation import get_real_label
 
 
 class BaseActions(object):
@@ -9,10 +10,10 @@ class BaseActions(object):
     engine should inherit from this.
     """
     @classmethod
-    def get_all_actions(cls):
+    def get_all_actions(cls, chinese=False):
         methods = inspect.getmembers(cls)
         return [{'name': m[0],
-                 'label': m[1].label,
+                 'label': get_real_label(m[1].label, chinese),
                  'params': m[1].params
                 } for m in methods if getattr(m[1], 'is_rule_action', False)]
 
